@@ -19,6 +19,7 @@ class App extends Component {
     this.connectWallet = this.connectWallet.bind(this);
     this.getInstaPoolLiquidity = this.getInstaPoolLiquidity.bind(this);
     this.findArbOpps = this.findArbOpps.bind(this);
+    this.executeTransaction = this.executeTransaction.bind(this);
 
     this.state = {
       dsa: false,
@@ -87,6 +88,7 @@ class App extends Component {
   async findArbOpps(token, amount) {
     if (this.state.dsa) {
       const arbOpps = [];
+      let index = 0;
       for (let [key, val] of Object.entries(tokens)) {
         if (key !== token && val.type === "token") {
           let buyFinal = {};
@@ -95,33 +97,142 @@ class App extends Component {
           const buyResultKyber = await this.state.dsa.kyber.getBuyAmount(key, token, amount, 0);
           if (buyResultOneInch.buyAmt > buyResultKyber.buyAmt) {
             console.log("1inch", amount, token, "->", key, buyResultOneInch);
-            buyFinal = {"amt": buyResultOneInch.buyAmt, "dex": "1inch"};
+            buyFinal = {"amt": buyResultOneInch.buyAmt, "dex": "1inch", "unitAmt": buyResultOneInch.unitAmt};
           } else {
             console.log("Kyber", amount, token, "->", key, buyResultKyber);
-            buyFinal = {"amt": buyResultKyber.buyAmt, "dex": "Kyber"};
+            buyFinal = {"amt": buyResultKyber.buyAmt, "dex": "Kyber", "unitAmt": buyResultKyber.unitAmt};
           }
           const sellResultOneInch = await this.state.dsa.oneInch.getBuyAmount(token, key, buyFinal.amt, 0);
           const sellResultKyber = await this.state.dsa.kyber.getBuyAmount(token, key, buyFinal.amt, 0);
           if (sellResultOneInch.buyAmt > sellResultKyber.buyAmt) {
             console.log("1inch", amount, key, "->", token, sellResultOneInch);
-            sellFinal = {"amt": sellResultOneInch.buyAmt, "dex": "1inch"};
+            sellFinal = {"amt": sellResultOneInch.buyAmt, "dex": "1inch", "unitAmt": sellResultOneInch.unitAmt};
           } else {
             console.log("Kyber", amount, key, "->", token, sellResultKyber);
-            sellFinal = {"amt": sellResultKyber.buyAmt, "dex": "Kyber"};
+            sellFinal = {"amt": sellResultKyber.buyAmt, "dex": "Kyber",  "unitAmt": sellResultKyber.unitAmt};
           }
 
           if (sellFinal.amt > amount) {
             arbOpps.push({
+              "index": index,
               "from": buyFinal.dex,
               "to": sellFinal.dex,
               "amount": amount,
               "fromAmt": buyFinal.amt,
               "toAmt": sellFinal.amt,
               "borrowToken": token,
-              "buyToken": key
+              "buyToken": key,
+              "buyUnitAmt": buyFinal.unitAmt,
+              "sellUnitAmt": sellFinal.unitAmt
             });
             this.setState({ arbOpps });
+            index++;
           }
+        }
+      }
+    }
+  }
+
+  async executeTransaction(index) {
+    if (this.state.dsa) {
+      if (Array.isArray(this.state.arbOpps) && this.state.arbOpps.length > index) {
+        const trxDetails = this.state.arbOpps[index];
+        console.log("Executing ", trxDetails);
+        let spells = this.state.dsa.Spell();
+
+        let bAmountInWei = this.state.dsa.tokens.fromDecimal(trxDetails.amount, trxDetails.borrowToken);
+
+        spells.add({
+          connector: "instapool",
+          method: "flashBorrow",
+          args: [
+            tokens[trxDetails.borrowToken].address,
+            bAmountInWei,
+            0,
+            0
+          ]
+        });
+
+        if (trxDetails.from === "1inch") {
+
+          spells.add({
+            connector: "oneInch",
+            method: "sell",
+            args: [
+              tokens[trxDetails.buyToken].address,
+              tokens[trxDetails.borrowToken].address,
+              bAmountInWei,
+              trxDetails.buyUnitAmt,
+              0,
+              0
+            ]
+          });
+        } else if (trxDetails.from === "Kyber") {
+          spells.add({
+            connector: "kyber",
+            method: "sell",
+            args: [
+              tokens[trxDetails.buyToken].address,
+              tokens[trxDetails.borrowToken].address,
+              bAmountInWei,
+              trxDetails.buyUnitAmt,
+              0,
+              0
+            ]
+          });
+        } else {
+          return 0;
+        }
+
+        bAmountInWei = this.state.dsa.tokens.fromDecimal(trxDetails.fromAmt, trxDetails.buyToken);
+
+        if (trxDetails.to === "1inch") {
+          spells.add({
+            connector: "oneInch",
+            method: "sell",
+            args: [
+              tokens[trxDetails.borrowToken].address,
+              tokens[trxDetails.buyToken].address,
+              bAmountInWei,
+              trxDetails.sellUnitAmt,
+              0,
+              0
+            ]
+          });
+        } else if (trxDetails.to === "Kyber") {
+          spells.add({
+            connector: "kyber",
+            method: "sell",
+            args: [
+              tokens[trxDetails.borrowToken].address,
+              tokens[trxDetails.buyToken].address,
+              bAmountInWei,
+              trxDetails.sellUnitAmt,
+              0,
+              0
+            ]
+          });
+        } else {
+          return 0;
+        }
+
+        spells.add({
+          connector: "instapool",
+          method: "flashPayback",
+          args: [
+            tokens[trxDetails.borrowToken].address,
+            0,
+            0
+          ]
+        });
+
+        console.log(spells);
+
+        try {
+          const trxHash = await this.state.dsa.cast(spells);
+          console.log("Transaction went through", trxHash)          
+        } catch (error) {
+          console.log("Failed Transaction", error);
         }
       }
     }
@@ -139,9 +250,20 @@ class App extends Component {
           <li>DAI - {this.state.availableLiquidity.dai}</li>
           <li>ETH - {this.state.availableLiquidity.eth}</li>
         </ul>
-        <button onClick={() => this.findArbOpps("eth", 2)}>
+        <button onClick={() => this.findArbOpps("eth", 1)}>
           Find Arbitrage Opportunities
         </button>
+        <h2>Available Opportunities</h2>
+        <ul>
+          {this.state.arbOpps.map(item => (
+            <li key={item.index}>
+              Flashloan {item.amount} {item.borrowToken} ~ Buy {item.fromAmt} {item.buyToken} from {item.from} ~ Sell {item.buyToken} for {item.toAmt} {item.borrowToken} from {item.to} = Profit {item.toAmt - item.amount} {" "}
+              <button onClick={() => this.executeTransaction(item.index)}>
+                Execute
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
     );
   }
