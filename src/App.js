@@ -20,11 +20,17 @@ class App extends Component {
     this.getInstaPoolLiquidity = this.getInstaPoolLiquidity.bind(this);
     this.findArbOpps = this.findArbOpps.bind(this);
     this.executeTransaction = this.executeTransaction.bind(this);
+    this.changeAsset = this.changeAsset.bind(this);
+    this.changeAmount = this.changeAmount.bind(this);
 
     this.state = {
       dsa: false,
       availableLiquidity: {},
-      arbOpps: []
+      arbOpps: [],
+      flashloan: {
+        asset: "usdc",
+        amount: 100
+      }
     }
   }
 
@@ -85,7 +91,9 @@ class App extends Component {
     }
   }
 
-  async findArbOpps(token, amount) {
+  async findArbOpps() {
+    const token = this.state.flashloan.asset;
+    const amount = this.state.flashloan.amount;
     if (this.state.dsa) {
       const arbOpps = [];
       let index = 0;
@@ -238,6 +246,22 @@ class App extends Component {
     }
   }
 
+  changeAsset(event) {
+    const flashloan = {...this.state.flashloan}
+    flashloan.asset = event.target.value;
+    this.setState({
+      flashloan
+    });
+  }
+
+  changeAmount(event) {
+    const flashloan = {...this.state.flashloan}
+    flashloan.amount = Number.parseFloat(event.target.value);
+    this.setState({
+      flashloan
+    });
+  }
+
   render() {
     return (
       <div className="App">
@@ -250,7 +274,15 @@ class App extends Component {
           <li>DAI - {this.state.availableLiquidity.dai}</li>
           <li>ETH - {this.state.availableLiquidity.eth}</li>
         </ul>
-        <button onClick={() => this.findArbOpps("eth", 1)}>
+        Asset: 
+        <select value={this.state.flashloan.asset} onChange={this.changeAsset}>
+          <option value="usdc">USDC</option>
+          <option value="dai">DAI</option>
+          <option value="eth">ETH</option>
+        </select>
+        Amount: 
+        <input type="number" step="any" value={this.state.flashloan.amount} onChange={this.changeAmount} />
+        <button onClick={this.findArbOpps}>
           Find Arbitrage Opportunities
         </button>
         <h2>Available Opportunities</h2>
