@@ -121,6 +121,7 @@ class App extends Component {
     const amount = this.state.flashloan.amount;
     if (this.state.dsa) {
       const arbOpps = [];
+      this.setState({ arbOpps });
       let index = 0;
       for (let [key, val] of Object.entries(tokens)) {
         if (key !== token && val.type === "token") {
@@ -130,10 +131,10 @@ class App extends Component {
           const buyResultKyber = await this.state.dsa.kyber.getBuyAmount(key, token, amount, 0);
           if (buyResultOneInch.buyAmt > buyResultKyber.buyAmt) {
             console.log("1inch", amount, token, "->", key, buyResultOneInch);
-            buyFinal = {"amt": buyResultOneInch.buyAmt, "dex": "1inch", "unitAmt": buyResultOneInch.unitAmt};
+            buyFinal = {"amt": 0.999*buyResultOneInch.buyAmt, "dex": "1inch", "unitAmt": buyResultOneInch.unitAmt};
           } else {
             console.log("Kyber", amount, token, "->", key, buyResultKyber);
-            buyFinal = {"amt": buyResultKyber.buyAmt, "dex": "Kyber", "unitAmt": buyResultKyber.unitAmt};
+            buyFinal = {"amt": 0.999*buyResultKyber.buyAmt, "dex": "Kyber", "unitAmt": buyResultKyber.unitAmt};
           }
           const sellResultOneInch = await this.state.dsa.oneInch.getBuyAmount(token, key, buyFinal.amt, 0);
           const sellResultKyber = await this.state.dsa.kyber.getBuyAmount(token, key, buyFinal.amt, 0);
@@ -145,7 +146,7 @@ class App extends Component {
             sellFinal = {"amt": sellResultKyber.buyAmt, "dex": "Kyber",  "unitAmt": sellResultKyber.unitAmt};
           }
 
-          if (sellFinal.amt > amount) {
+          if (sellFinal.amt > amount * 1.001) {
             arbOpps.push({
               "index": index,
               "from": buyFinal.dex,
