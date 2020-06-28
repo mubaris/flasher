@@ -383,7 +383,10 @@ class App extends Component {
           ))}
         </ul>
         </div>
-        : null }
+        :<div> 
+          <h3>No Available Opportunities. </h3> 
+          <p> Click the button above to avail of known oppurtunities.</p>
+        </div>}
         </div>
         : null }
         </Col>
