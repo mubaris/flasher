@@ -5,7 +5,7 @@ import Web3Modal from "web3modal";
 import DSA from "dsa-sdk";
 import { Button, Select, InputNumber, Row, Col, Form } from 'antd';
 import tokens from "./consts/token";
-
+import CoinGecko from "coingecko-api";
 import './App.css';
 
 const { Option } = Select;
@@ -36,6 +36,8 @@ class App extends Component {
     this.createDSA = this.createDSA.bind(this);
     this.onFinish = this.onFinish.bind(this);
 
+    const exchangeRate = this.calculatePrice();
+
     this.state = {
       dsa: false,
       availableLiquidity: {},
@@ -45,8 +47,19 @@ class App extends Component {
         amount: 100
       },
       createAccount: false,
-      web3: false
+      web3: false,
+      prices : exchangeRate
     }
+  }
+
+  async calculatePrice(){
+    const CoinGeckoClient = new CoinGecko();
+    let data = await CoinGeckoClient.coins.markets({"ids" : ["usd-coin","dai","ethereum"]});
+    console.log(data);
+    let currencyRates = {};
+    data.data.forEach(cur => {currencyRates[cur.symbol] = cur.current_price});
+    console.log(currencyRates);
+    return currencyRates;
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -328,7 +341,7 @@ class App extends Component {
         <ul>
           <li>USDC - {this.state.availableLiquidity.usdc ? this.state.availableLiquidity.usdc.toFixed(3) : 0}</li>
           <li>DAI - {this.state.availableLiquidity.dai ? this.state.availableLiquidity.dai.toFixed(3) : 0}</li>
-          <li>ETH - {this.state.availableLiquidity.dai ? this.state.availableLiquidity.eth.toFixed(3) : 0}</li>
+          <li>ETH - {this.state.availableLiquidity.eth ? this.state.availableLiquidity.eth.toFixed(3) : 0}</li>
         </ul>
         </Col>
         </Row>
@@ -374,9 +387,9 @@ class App extends Component {
         <h2>Available Opportunities</h2>
         <ul>
           {this.state.arbOpps.map(item => (
-            <li key={item.index}>
-              Flashloan {item.amount} {item.borrowToken} ~ Buy {item.fromAmt.toFixed(3)} {item.buyToken} from {item.from} ~ Sell {item.buyToken} for {item.toAmt.toFixed(3)} {item.borrowToken} from {item.to} = Profit {(item.toAmt - item.amount).toFixed(3)} {" "}
-              <Button onClick={() => this.executeTransaction(item.index)}>
+            <li key={item.index} className="flashRow2">
+              Flashloan {item.amount} <b>{item.borrowToken.toUpperCase()}</b> → Buy {item.fromAmt.toFixed(3)} <b>{item.buyToken.toUpperCase()}</b> from <b>{item.from}</b> → Sell <b>{item.buyToken.toUpperCase()}</b> for {item.toAmt.toFixed(3)} <b>{item.borrowToken.toUpperCase()}</b> from <b>{item.to}</b> = Profit {((item.toAmt - item.amount).toFixed(3))} {" "}
+              <Button onClick={() => this.executeTransaction(item.index)} type="danger">
                 Execute
               </Button>
             </li>
