@@ -113,7 +113,8 @@ class App extends Component {
       dsa.setInstance(dsaId); // DSA ID
       this.setState({
         dsa,
-        web3
+        web3,
+        createAccount: false
       });
     }
 
