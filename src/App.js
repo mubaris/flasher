@@ -326,9 +326,9 @@ class App extends Component {
         <Row className="flashRow">
         <Col span={6}>
         <ul>
-          <li>USDC - {this.state.availableLiquidity.usdc}</li>
-          <li>DAI - {this.state.availableLiquidity.dai}</li>
-          <li>ETH - {this.state.availableLiquidity.eth}</li>
+          <li>USDC - {this.state.availableLiquidity.usdc ? this.state.availableLiquidity.usdc.toFixed(3) : 0}</li>
+          <li>DAI - {this.state.availableLiquidity.dai ? this.state.availableLiquidity.dai.toFixed(3) : 0}</li>
+          <li>ETH - {this.state.availableLiquidity.dai ? this.state.availableLiquidity.eth.toFixed(3) : 0}</li>
         </ul>
         </Col>
         </Row>
@@ -375,7 +375,7 @@ class App extends Component {
         <ul>
           {this.state.arbOpps.map(item => (
             <li key={item.index}>
-              Flashloan {item.amount} {item.borrowToken} ~ Buy {item.fromAmt} {item.buyToken} from {item.from} ~ Sell {item.buyToken} for {item.toAmt} {item.borrowToken} from {item.to} = Profit {item.toAmt - item.amount} {" "}
+              Flashloan {item.amount} {item.borrowToken} ~ Buy {item.fromAmt.toFixed(3)} {item.buyToken} from {item.from} ~ Sell {item.buyToken} for {item.toAmt.toFixed(3)} {item.borrowToken} from {item.to} = Profit {(item.toAmt - item.amount).toFixed(3)} {" "}
               <Button onClick={() => this.executeTransaction(item.index)}>
                 Execute
               </Button>
