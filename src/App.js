@@ -22,6 +22,7 @@ class App extends Component {
     this.executeTransaction = this.executeTransaction.bind(this);
     this.changeAsset = this.changeAsset.bind(this);
     this.changeAmount = this.changeAmount.bind(this);
+    this.createDSA = this.createDSA.bind(this);
 
     this.state = {
       dsa: false,
@@ -30,7 +31,9 @@ class App extends Component {
       flashloan: {
         asset: "usdc",
         amount: 100
-      }
+      },
+      createAccount: false,
+      web3: false
     }
   }
 
@@ -63,6 +66,10 @@ class App extends Component {
         dsaId = dsaAccounts[0].id;
         console.log(dsaId, dsaAccounts);
       } else {
+        this.setState({
+          createAccount: true,
+          web3
+        });
         console.log("No DSA", dsaAccounts);
       }
     } catch (error) {
@@ -74,11 +81,26 @@ class App extends Component {
     if (dsaId) {
       dsa.setInstance(dsaId); // DSA ID
       this.setState({
-        dsa: dsa
+        dsa,
+        web3
       });
     }
 
     this.getInstaPoolLiquidity();
+  }
+
+  async createDSA() {
+    const web3 = this.state.web3;
+
+    const accounts = await web3.eth.getAccounts()
+
+    const address = accounts[0];
+
+    const dsa = new DSA(web3);
+
+    const hash = await dsa.build();
+
+    console.log(hash, address);
   }
 
   async getInstaPoolLiquidity() {
@@ -268,6 +290,7 @@ class App extends Component {
         <button onClick={this.connectWallet}>
           Connect Wallet
         </button>
+        { this.state.createAccount ? <button onClick={this.createDSA}>Created DSA Account</button> : null }
         <h2>Available Liquidity</h2>
         <ul>
           <li>USDC - {this.state.availableLiquidity.usdc}</li>
