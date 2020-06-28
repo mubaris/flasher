@@ -7,6 +7,7 @@
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
     "@testing-library/user-event": "^7.1.2",
+    "@walletconnect/web3-provider": "^1.0.11",
     "antd": "^4.3.4",
     "authereum": "0.0.4-beta.156",
     "babel-plugin-import": "^1.13.0",

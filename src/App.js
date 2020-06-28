@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import Authereum from "authereum";
 import Web3 from "web3";
 import Web3Modal from "web3modal";
+import WalletConnectProvider from "@walletconnect/web3-provider";
 import DSA from "dsa-sdk";
 import { Button, Select, InputNumber, Row, Col, Form } from 'antd';
 import tokens from "./consts/token";
@@ -13,6 +14,12 @@ const { Option } = Select;
 const providerOptions = {
   authereum: {
     package: Authereum // required
+  },
+  walletconnect: {
+    package: WalletConnectProvider, // required
+    options: {
+      infuraId: "ce54e0ff8ac841ab84b83a5e59cb868d" // required
+    }
   }
 };
 
@@ -35,8 +42,7 @@ class App extends Component {
     this.changeAmount = this.changeAmount.bind(this);
     this.createDSA = this.createDSA.bind(this);
     this.onFinish = this.onFinish.bind(this);
-
-    const exchangeRate = this.calculatePrice();
+    this.calculatePrice = this.calculatePrice.bind(this);
 
     this.state = {
       dsa: false,
@@ -48,7 +54,7 @@ class App extends Component {
       },
       createAccount: false,
       web3: false,
-      prices : exchangeRate
+      prices : {}
     }
   }
 
@@ -112,6 +118,10 @@ class App extends Component {
     }
 
     this.getInstaPoolLiquidity();
+    const prices = await this.calculatePrice();
+    this.setState({
+      prices
+    });
   }
 
   async createDSA() {
@@ -179,7 +189,9 @@ class App extends Component {
               "borrowToken": token,
               "buyToken": key,
               "buyUnitAmt": buyFinal.unitAmt,
-              "sellUnitAmt": sellFinal.unitAmt
+              "sellUnitAmt": sellFinal.unitAmt,
+              "diff": sellFinal.amt - amount,
+              "diffUsd": (sellFinal.amt - amount) * this.state.prices[token]
             });
             this.setState({ arbOpps });
             index++;
@@ -329,10 +341,23 @@ class App extends Component {
       <div className="App">
         <Row className="flashRow">
         <Col span={24}>
+        <Row className="flashRow">
+        <Col span={6}>  
         <Button type="primary" onClick={this.connectWallet}>
           Connect Wallet
         </Button>
-        { this.state.createAccount ? <Button type="primary" onClick={this.createDSA}>Created DSA Account</Button> : null }
+        </Col>
+        </Row>
+        <Row className="flashRow">
+        <Col span={6}>
+        { this.state.createAccount ? 
+          <div>
+            <p>You need to create a InstaDaap DSA Account</p><br />
+            <Button type="primary" onClick={this.createDSA}>Created DSA Account</Button>
+          </div>
+        : null }
+        </Col>
+        </Row>
         { this.state.dsa ? 
         <div>
         <h2>Available Liquidity</h2>
@@ -371,7 +396,7 @@ class App extends Component {
               rules={[{ required: true, message: 'Please enter the amount!' }]}
               initialValue={this.state.flashloan.amount}
             >
-              <InputNumber step="0.001" min={10} />
+              <InputNumber step="0.001" min={0.1} />
             </Form.Item>
 
             <Form.Item {...tailLayout}>
@@ -388,7 +413,7 @@ class App extends Component {
         <ul>
           {this.state.arbOpps.map(item => (
             <li key={item.index} className="flashRow2">
-              Flashloan {item.amount} <b>{item.borrowToken.toUpperCase()}</b> → Buy {item.fromAmt.toFixed(3)} <b>{item.buyToken.toUpperCase()}</b> from <b>{item.from}</b> → Sell <b>{item.buyToken.toUpperCase()}</b> for {item.toAmt.toFixed(3)} <b>{item.borrowToken.toUpperCase()}</b> from <b>{item.to}</b> = Profit {((item.toAmt - item.amount).toFixed(3))} {" "}
+              Flashloan {item.amount} <b>{item.borrowToken.toUpperCase()}</b> → Buy {item.fromAmt.toFixed(3)} <b>{item.buyToken.toUpperCase()}</b> from <b>{item.from}</b> → Sell <b>{item.buyToken.toUpperCase()}</b> for {item.toAmt.toFixed(3)} <b>{item.borrowToken.toUpperCase()}</b> from <b>{item.to}</b> = Profit <b>{item.diff.toFixed(3)}</b> {item.borrowToken.toUpperCase()} (<b>${item.diffUsd.toFixed(3)}</b>) {" "}
               <Button onClick={() => this.executeTransaction(item.index)} type="danger">
                 Execute
               </Button>
