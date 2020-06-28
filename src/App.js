@@ -3,9 +3,12 @@ import Authereum from "authereum";
 import Web3 from "web3";
 import Web3Modal from "web3modal";
 import DSA from "dsa-sdk";
+import { Button, Select, InputNumber } from 'antd';
 import tokens from "./consts/token";
 
 import './App.css';
+
+const { Option } = Select;
 
 const providerOptions = {
   authereum: {
@@ -268,17 +271,19 @@ class App extends Component {
     }
   }
 
-  changeAsset(event) {
+  changeAsset(value) {
+    console.log(`Selected ${value}`);
     const flashloan = {...this.state.flashloan}
-    flashloan.asset = event.target.value;
+    // flashloan.asset = event.target.value;
+    flashloan.asset = value;
     this.setState({
       flashloan
     });
   }
 
-  changeAmount(event) {
+  changeAmount(value) {
     const flashloan = {...this.state.flashloan}
-    flashloan.amount = Number.parseFloat(event.target.value);
+    flashloan.amount = Number.parseFloat(value);
     this.setState({
       flashloan
     });
@@ -287,10 +292,10 @@ class App extends Component {
   render() {
     return (
       <div className="App">
-        <button onClick={this.connectWallet}>
+        <Button type="primary" onClick={this.connectWallet}>
           Connect Wallet
-        </button>
-        { this.state.createAccount ? <button onClick={this.createDSA}>Created DSA Account</button> : null }
+        </Button>
+        { this.state.createAccount ? <Button type="primary" onClick={this.createDSA}>Created DSA Account</Button> : null }
         <h2>Available Liquidity</h2>
         <ul>
           <li>USDC - {this.state.availableLiquidity.usdc}</li>
@@ -298,24 +303,24 @@ class App extends Component {
           <li>ETH - {this.state.availableLiquidity.eth}</li>
         </ul>
         Asset: 
-        <select value={this.state.flashloan.asset} onChange={this.changeAsset}>
-          <option value="usdc">USDC</option>
-          <option value="dai">DAI</option>
-          <option value="eth">ETH</option>
-        </select>
+        <Select value={this.state.flashloan.asset} onChange={this.changeAsset}>
+          <Option value="usdc">USDC</Option>
+          <Option value="dai">DAI</Option>
+          <Option value="eth">ETH</Option>
+        </Select>
         Amount: 
-        <input type="number" step="any" value={this.state.flashloan.amount} onChange={this.changeAmount} />
-        <button onClick={this.findArbOpps}>
+        <InputNumber step="0.001" min={10} value={this.state.flashloan.amount} onChange={this.changeAmount} />
+        <Button type="primary" onClick={this.findArbOpps}>
           Find Arbitrage Opportunities
-        </button>
+        </Button>
         <h2>Available Opportunities</h2>
         <ul>
           {this.state.arbOpps.map(item => (
             <li key={item.index}>
               Flashloan {item.amount} {item.borrowToken} ~ Buy {item.fromAmt} {item.buyToken} from {item.from} ~ Sell {item.buyToken} for {item.toAmt} {item.borrowToken} from {item.to} = Profit {item.toAmt - item.amount} {" "}
-              <button onClick={() => this.executeTransaction(item.index)}>
+              <Button onClick={() => this.executeTransaction(item.index)}>
                 Execute
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
