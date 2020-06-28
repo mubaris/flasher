@@ -1,7 +1,12 @@
 @import '~antd/dist/antd.css';
 
+.flashRow {
+  padding: 1%;
+}
+
 .App {
-  text-align: center;
+  /* text-align: center; */
+  margin: 2%;
 }
 
 .App-logo {

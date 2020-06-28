@@ -3,7 +3,7 @@ import Authereum from "authereum";
 import Web3 from "web3";
 import Web3Modal from "web3modal";
 import DSA from "dsa-sdk";
-import { Button, Select, InputNumber } from 'antd';
+import { Button, Select, InputNumber, Row, Col, Form } from 'antd';
 import tokens from "./consts/token";
 
 import './App.css';
@@ -16,6 +16,14 @@ const providerOptions = {
   }
 };
 
+const layout = {
+  labelCol: { span: 8 },
+  wrapperCol: { span: 16 },
+};
+const tailLayout = {
+  wrapperCol: { offset: 8, span: 16 },
+};
+
 class App extends Component {
   constructor(props) {
     super(props);
@@ -26,6 +34,7 @@ class App extends Component {
     this.changeAsset = this.changeAsset.bind(this);
     this.changeAmount = this.changeAmount.bind(this);
     this.createDSA = this.createDSA.bind(this);
+    this.onFinish = this.onFinish.bind(this);
 
     this.state = {
       dsa: false,
@@ -290,30 +299,78 @@ class App extends Component {
     });
   }
 
+  async onFinish(values) {
+    const flashloan = {
+      asset: values.asset,
+      amount: values.amount
+    }
+    this.setState({
+      flashloan
+    }, () => {
+      this.findArbOpps();
+    });
+  }
+
   render() {
     return (
       <div className="App">
+        <Row className="flashRow">
+        <Col span={24}>
         <Button type="primary" onClick={this.connectWallet}>
           Connect Wallet
         </Button>
         { this.state.createAccount ? <Button type="primary" onClick={this.createDSA}>Created DSA Account</Button> : null }
+        { this.state.dsa ? 
+        <div>
         <h2>Available Liquidity</h2>
+        <Row className="flashRow">
+        <Col span={6}>
         <ul>
           <li>USDC - {this.state.availableLiquidity.usdc}</li>
           <li>DAI - {this.state.availableLiquidity.dai}</li>
           <li>ETH - {this.state.availableLiquidity.eth}</li>
         </ul>
-        Asset: 
-        <Select value={this.state.flashloan.asset} onChange={this.changeAsset}>
-          <Option value="usdc">USDC</Option>
-          <Option value="dai">DAI</Option>
-          <Option value="eth">ETH</Option>
-        </Select>
-        Amount: 
-        <InputNumber step="0.001" min={10} value={this.state.flashloan.amount} onChange={this.changeAmount} />
-        <Button type="primary" onClick={this.findArbOpps}>
-          Find Arbitrage Opportunities
-        </Button>
+        </Col>
+        </Row>
+        <Row className="flashRow">
+        <Col span={6}>
+          <Form
+            {...layout}
+            initialValues={{ remember: true }}
+            onFinish={this.onFinish}
+            onFinishFailed={this.onFinishFailed}
+          >
+            <Form.Item
+              label="Asset"
+              name="asset"
+              rules={[{ required: true, message: 'Please select the asset!' }]}
+              initialValue={this.state.flashloan.asset}
+            >
+              <Select>
+                <Option value="usdc">USDC</Option>
+                <Option value="dai">DAI</Option>
+                <Option value="eth">ETH</Option>
+              </Select>
+            </Form.Item>
+            <Form.Item
+              label="Amount"
+              name="amount"
+              rules={[{ required: true, message: 'Please enter the amount!' }]}
+              initialValue={this.state.flashloan.amount}
+            >
+              <InputNumber step="0.001" min={10} />
+            </Form.Item>
+
+            <Form.Item {...tailLayout}>
+              <Button type="primary" htmlType="submit">
+                Find Arbitrage Opportunities
+              </Button>
+            </Form.Item>
+          </Form>
+        </Col>
+        </Row>
+        { this.state.arbOpps.length > 0 ?
+        <div>
         <h2>Available Opportunities</h2>
         <ul>
           {this.state.arbOpps.map(item => (
@@ -325,6 +382,12 @@ class App extends Component {
             </li>
           ))}
         </ul>
+        </div>
+        : null }
+        </div>
+        : null }
+        </Col>
+        </Row>
       </div>
     );
   }
